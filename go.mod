@@ -13,7 +13,7 @@ require (
 	golang.org/x/net v0.24.0
 	gorm.io/driver/postgres v1.5.7
 	gorm.io/gen v0.3.26
-	gorm.io/gorm v1.25.9
+	gorm.io/gorm v1.25.10
 	gorm.io/plugin/dbresolver v1.5.1
 )
 
