@@ -19,8 +19,14 @@ type columnTyper interface {
 
 type stringColumnType struct{}
 
-func (s *stringColumnType) name() string                 { return "string" }
-func (s *stringColumnType) cast(str string) (any, error) { return str, nil }
+func (s *stringColumnType) name() string { return "string" }
+func (s *stringColumnType) cast(str string) (any, error) {
+	if str == "" {
+		return nil, nil
+	}
+
+	return str, nil
+}
 
 type intColumnType struct{}
 

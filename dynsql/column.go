@@ -41,7 +41,7 @@ func (tc *tableColumn) inter(op, val string) (clause.Expression, error) {
 	}
 
 	value, err := tc.tp.cast(val)
-	if err != nil || value == nil {
+	if err != nil {
 		return nil, err
 	}
 
