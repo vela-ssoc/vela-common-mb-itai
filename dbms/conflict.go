@@ -18,6 +18,11 @@ func onConflictFunc(c clause.Clause, builder clause.Builder) {
 	}
 
 	builder.WriteString("ON DUPLICATE KEY UPDATE ")
+	if onConflict.DoNothing {
+		builder.WriteString("NOTHING ")
+		return
+	}
+
 	if len(onConflict.DoUpdates) == 0 {
 		if s := builder.(*gorm.Statement).Schema; s != nil {
 			var column clause.Column
