@@ -8,8 +8,6 @@ import (
 	_ "gitee.com/opengauss/openGauss-connector-go-pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/callbacks"
-	"gorm.io/gorm/clause"
 	"gorm.io/gorm/logger"
 )
 
@@ -67,46 +65,21 @@ func Open(cfg Config, lgi logger.Interface) (*gorm.DB, *sql.DB, error) {
 	sdb.SetConnMaxLifetime(cfg.MaxLifeTime)
 	sdb.SetConnMaxIdleTime(cfg.MaxIdleTime)
 
-	callbackConfig := &callbacks.Config{
-		CreateClauses: []string{"INSERT", "VALUES", "ON CONFLICT"},
-		UpdateClauses: []string{"UPDATE", "SET", "FROM", "WHERE"},
-		DeleteClauses: []string{"DELETE", "FROM", "WHERE"},
-	}
-	if !gauss.WithoutReturning {
-		callbackConfig.CreateClauses = append(callbackConfig.CreateClauses, "RETURNING")
-		callbackConfig.UpdateClauses = append(callbackConfig.UpdateClauses, "RETURNING")
-		callbackConfig.DeleteClauses = append(callbackConfig.DeleteClauses, "RETURNING")
-	}
+	// -----[ OpenGauss Start ]-----
+	// 替换 gorm:create 阶段的回调函数。
 	_ = db.Callback().
 		Create().
-		Replace("gorm:create", Create(callbackConfig))
-	// 雪花 ID 生成器
+		Replace("gorm:create", createCallback(gauss.WithoutReturning))
+	// ON CONFLICT
+	db.ClauseBuilders["ON CONFLICT"] = onConflictFunc
+	// -----[ OpenGauss End ]-----
+
+	// 注册雪花 ID 生成器。
 	sn := newSnow()
 	_ = db.Callback().
 		Create().
 		Before("gorm:create").
 		Register("generate_id", sn.autoID)
-	db.ClauseBuilders["ON CONFLICT"] = onConflictFunc
 
 	return db, sdb, nil
-}
-
-type rewriteCreate struct {
-	crt func(*gorm.DB)
-}
-
-func (rc *rewriteCreate) rewrite(db *gorm.DB) {
-	if db.Error != nil {
-		return
-	}
-
-	if db.Statement.Schema != nil {
-		if len(db.Statement.Schema.FieldsWithDefaultDBValue) > 0 {
-			if _, ok := db.Statement.Clauses["ON CONFLICT"]; ok {
-				db.Statement.AddClause(clause.Returning{})
-			}
-		}
-	}
-
-	rc.crt(db)
 }

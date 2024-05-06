@@ -48,9 +48,20 @@ func onConflictFunc(c clause.Clause, builder clause.Builder) {
 	}
 }
 
-// Create create hook
-func Create(config *callbacks.Config) func(db *gorm.DB) {
-	supportReturning := utils.Contains(config.CreateClauses, "RETURNING")
+// Create  hook
+func createCallback(withoutReturning bool) func(db *gorm.DB) {
+	cfg := &callbacks.Config{
+		CreateClauses: []string{"INSERT", "VALUES", "ON CONFLICT"},
+		UpdateClauses: []string{"UPDATE", "SET", "FROM", "WHERE"},
+		DeleteClauses: []string{"DELETE", "FROM", "WHERE"},
+	}
+	if !withoutReturning {
+		cfg.CreateClauses = append(cfg.CreateClauses, "RETURNING")
+		cfg.UpdateClauses = append(cfg.UpdateClauses, "RETURNING")
+		cfg.DeleteClauses = append(cfg.DeleteClauses, "RETURNING")
+	}
+
+	supportReturning := utils.Contains(cfg.CreateClauses, "RETURNING")
 
 	return func(db *gorm.DB) {
 		if db.Error != nil {
@@ -164,7 +175,7 @@ func Create(config *callbacks.Config) func(db *gorm.DB) {
 				}
 			}
 
-			if config.LastInsertIDReversed {
+			if cfg.LastInsertIDReversed {
 				insertID -= int64(len(mapValues)-1) * schema.DefaultAutoIncrementIncrement
 			}
 
@@ -181,7 +192,7 @@ func Create(config *callbacks.Config) func(db *gorm.DB) {
 
 			switch db.Statement.ReflectValue.Kind() {
 			case reflect.Slice, reflect.Array:
-				if config.LastInsertIDReversed {
+				if cfg.LastInsertIDReversed {
 					for i := db.Statement.ReflectValue.Len() - 1; i >= 0; i-- {
 						rv := db.Statement.ReflectValue.Index(i)
 						if reflect.Indirect(rv).Kind() != reflect.Struct {
