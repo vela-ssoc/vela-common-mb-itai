@@ -13,5 +13,5 @@ type Elastic struct {
 
 // TableName implement gorm schema.Tabler
 func (Elastic) TableName() string {
-	return "elastic"
+	return "elastic_config"
 }
