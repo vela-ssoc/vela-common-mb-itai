@@ -42,7 +42,22 @@ func onConflictFunc(c clause.Clause, builder clause.Builder) {
 		}
 	}
 
+	uniques := make(map[string]struct{}, 32)
+	if stmt, _ := builder.(*gorm.Statement); stmt != nil {
+		if schema := stmt.Schema; schema != nil {
+			for _, field := range schema.Fields {
+				if field.PrimaryKey || field.Unique {
+					uniques[field.DBName] = struct{}{}
+				}
+			}
+		}
+	}
+
 	for idx, assignment := range onConflict.DoUpdates {
+		if _, unique := uniques[assignment.Column.Name]; unique {
+			continue
+		}
+
 		if idx > 0 {
 			builder.WriteByte(',')
 		}
@@ -51,6 +66,27 @@ func onConflictFunc(c clause.Clause, builder clause.Builder) {
 		builder.WriteByte('=')
 		builder.AddVar(builder, assignment.Value)
 	}
+}
+
+func isUniqueKey(builder clause.Builder, assign clause.Assignment) bool {
+	stmt, ok := builder.(*gorm.Statement)
+	if !ok || stmt == nil {
+		return false
+	}
+	schema := stmt.Schema
+	if schema == nil {
+		return false
+	}
+
+	var yes bool
+	fields := schema.PrimaryFields
+	for _, field := range fields {
+		if yes = field.DBName == assign.Column.Name; yes {
+			break
+		}
+	}
+
+	return yes
 }
 
 // Create  hook

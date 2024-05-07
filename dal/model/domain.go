@@ -5,9 +5,9 @@ import "time"
 // Domain 域名解析信息
 type Domain struct {
 	ID        int64     `json:"id,string"  gorm:"column:id;primaryKey"` // 主键
-	Record    string    `json:"record"     gorm:"column:record"`        // 域名
-	Type      string    `json:"type"       gorm:"column:type"`          // 解析类型
-	Addr      string    `json:"addr"       gorm:"column:addr"`          // 解析地址
+	Record    string    `json:"record"     gorm:"column:record;unique"` // 域名
+	Type      string    `json:"type"       gorm:"column:type;unique"`   // 解析类型
+	Addr      string    `json:"addr"       gorm:"column:addr;unique"`   // 解析地址
 	Origin    string    `json:"origin"     gorm:"column:origin"`        // 来源
 	ISP       string    `json:"isp"        gorm:"column:isp"`           // ISP
 	Comment   string    `json:"comment"    gorm:"column:comment"`       // 备注
